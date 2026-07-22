@@ -44,7 +44,7 @@ jobs:
         run: |
           set -euo pipefail
           V="${{ steps.ver.outputs.version }}"
-          ZIP="Steamon-Utility-RP-${V}.zip"
+          ZIP="Gazai-Utility-RP-${V}.zip"
           # pack.mcmeta + assets at the archive root (+ pack.png if present)
           zip -r -q "$ZIP" pack.mcmeta assets $( [ -f pack.png ] && echo pack.png )
           echo "zip=$ZIP" >> "$GITHUB_OUTPUT"
@@ -83,7 +83,7 @@ jobs:
           echo "Modrinth metadata:"; cat /tmp/mr_meta.json; echo
           HTTP=$(curl -sS -o /tmp/mr_resp.json -w "%{http_code}" \
             -H "Authorization: ${MODRINTH_TOKEN}" \
-            -H "User-Agent: github.com/Gaspard4i/Steamon-Cobblemon-Utility-Plus-Resource-Pack" \
+            -H "User-Agent: github.com/Gaspard4i/Gazai-Cobblemon-Utility-Plus-Resource-Pack" \
             -X POST "https://api.modrinth.com/v2/version" \
             -F "data=@/tmp/mr_meta.json;type=application/json" \
             -F "file=@${ZIP}")
@@ -135,7 +135,7 @@ jobs:
           HTTP=$(curl -sS -o /tmp/cf_resp.json -w "%{http_code}" \
             -X POST "https://minecraft.curseforge.com/api/projects/${CURSEFORGE_ID}/upload-file" \
             -H "X-Api-Token: ${CURSEFORGE_TOKEN}" \
-            -H "User-Agent: github.com/Gaspard4i/Steamon-Cobblemon-Utility-Plus-Resource-Pack" \
+            -H "User-Agent: github.com/Gaspard4i/Gazai-Cobblemon-Utility-Plus-Resource-Pack" \
             -F "metadata=${META}" \
             -F "file=@${ZIP}")
           echo "HTTP: $HTTP"; cat /tmp/cf_resp.json; echo
