@@ -136,7 +136,7 @@ jobs:
             -X POST "https://minecraft.curseforge.com/api/projects/${CURSEFORGE_ID}/upload-file" \
             -H "X-Api-Token: ${CURSEFORGE_TOKEN}" \
             -H "User-Agent: github.com/Gaspard4i/Gazai-Cobblemon-Utility-Plus-Resource-Pack" \
-            -F "metadata=${META}" \
+            --form-string "metadata=${META}" \
             -F "file=@${ZIP}")
           echo "HTTP: $HTTP"; cat /tmp/cf_resp.json; echo
           [ "$HTTP" = "200" ] || [ "$HTTP" = "201" ] || { echo "::error::CF upload failed"; exit 1; }
