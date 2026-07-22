@@ -125,7 +125,7 @@ jobs:
           print(json.dumps({
             "changelog": "Release " + version + ".",
             "changelogType": "text",
-            "displayName": "Steamon Utility+ RP " + version,
+            "displayName": "Gazai's Utility+ RP " + version,
             "releaseType": "release",
             "gameVersions": [gv],
           }))
