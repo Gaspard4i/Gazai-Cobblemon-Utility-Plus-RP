@@ -1,21 +1,28 @@
-# Gazai Cobblemon Utility+ Resource Pack
+# Steamon: Cobblemon Utility+ Resource Pack
 
-Resource pack for the **Cobblemon Utility+** mod (modid `cobblemon_utility`) — MC 1.21.1 NeoForge.
+Resource pack that retextures and renames the items from the **Cobblemon Utility+**
+mod (modid `cobblemon_utility`) to fit the [Steamon modpack](https://modrinth.com/modpack/steamon) — MC 1.21.1.
 
-Retextures (and optionally renames) the mod's items: IV bottle caps, EV items,
-Golden Cap, Shiny Card, candies, relics, etc.
+## What it changes
+
+- **Bottle caps → Candies**: every IV bottle cap reskinned as a stat-colored candy
+  (silver = real Cobblemon IV candy, obsidian = negative IV candy, void, shining, golden, wooden).
+- **Shiny Card → Shiny Powder**, **Transmutation Orb**, **Common / Master Candy**,
+  **Devolution Wand**, **Ball Synchronizer**, **Golden Aprijuice**,
+  **Golden / Stale Poké Snack**, **Apricorn Energy** cans, **Void Vial**, and more.
+
+Languages: English, French, Spanish, German, Italian.
 
 ## Structure
-- `assets/cobblemon_utility/textures/item/*.png` — the item textures (originals
-  included as a base, repaint them).
-- `assets/cobblemon_utility/lang/en_us.json` — item display names. Edit the
-  values to rename items (e.g. `"item.cobblemon_utility.goldencap": "Gold Cap"`).
+- `assets/cobblemon_utility/textures/item/*.png` — item textures (32×32).
+- `assets/cobblemon_utility/lang/*.json` — item display names per language.
 - `pack.mcmeta` — pack_format 34 (MC 1.21.1).
+- `pack.png` — pack icon.
 
 ## Usage
-Drop the folder (or a zip of it) into `.minecraft/resourcepacks/` and enable it
-in Video Settings > Resource Packs. Load it ABOVE other packs so its textures win.
+Drop the folder (or a zip of it) into `.minecraft/resourcepacks/` and enable it in
+Video Settings → Resource Packs, above other packs so its textures win.
 
-## Renaming items
-A resource pack CAN rename items via the lang file — edit
-`assets/cobblemon_utility/lang/en_us.json`. Add `fr_fr.json` etc. for other languages.
+## Releasing
+Push a tag `vX.Y.Z` — the CI (`.github/workflows/release.yml`) zips the pack and
+publishes it to Modrinth (and CurseForge if `CURSEFORGE_ID` / `CURSEFORGE_TOKEN` are set).

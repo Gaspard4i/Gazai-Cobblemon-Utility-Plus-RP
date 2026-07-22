@@ -1,0 +1,139 @@
+name: Release Resource Pack
+
+# Publishes the resource pack to Modrinth (and CurseForge if configured)
+# when you push a tag like v1.0.1.
+#
+# Required secrets/vars on this repo:
+#   secrets.MODRINTH_TOKEN        (set)
+#   vars.MODRINTH_PROJECT_ID      (set: kF3LxuFD)
+# Optional (CurseForge):
+#   secrets.CURSEFORGE_TOKEN
+#   vars.CURSEFORGE_ID            (numeric project id from the CF project URL)
+
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Version to publish (e.g. 1.0.1)'
+        required: true
+        type: string
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Resolve version
+        id: ver
+        run: |
+          set -euo pipefail
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            V="${{ inputs.version }}"
+          else
+            V="${GITHUB_REF_NAME#v}"
+          fi
+          echo "version=$V" >> "$GITHUB_OUTPUT"
+          echo "Publishing version: $V"
+
+      - name: Build resource pack zip
+        id: build
+        run: |
+          set -euo pipefail
+          V="${{ steps.ver.outputs.version }}"
+          ZIP="Steamon-Utility-RP-${V}.zip"
+          # pack.mcmeta + assets at the archive root (+ pack.png if present)
+          zip -r -q "$ZIP" pack.mcmeta assets $( [ -f pack.png ] && echo pack.png )
+          echo "zip=$ZIP" >> "$GITHUB_OUTPUT"
+          echo "Built $ZIP:"
+          unzip -l "$ZIP" | tail -3
+
+      - name: Publish to Modrinth
+        env:
+          MODRINTH_TOKEN: ${{ secrets.MODRINTH_TOKEN }}
+          PROJECT_ID: ${{ vars.MODRINTH_PROJECT_ID }}
+          VERSION: ${{ steps.ver.outputs.version }}
+          ZIP: ${{ steps.build.outputs.zip }}
+        run: |
+          set -euo pipefail
+          if [ -z "${MODRINTH_TOKEN:-}" ] || [ -z "${PROJECT_ID:-}" ]; then
+            echo "::error::MODRINTH_TOKEN or MODRINTH_PROJECT_ID missing"; exit 1
+          fi
+          python3 - "$VERSION" "$PROJECT_ID" > /tmp/mr_meta.json <<'PYEOF'
+          import json, sys
+          version, project = sys.argv[1], sys.argv[2]
+          print(json.dumps({
+            "name": version,
+            "version_number": version,
+            "changelog": "Release " + version + ".",
+            "dependencies": [],
+            "game_versions": ["1.21.1"],
+            "version_type": "release",
+            "loaders": ["minecraft"],
+            "featured": True,
+            "status": "listed",
+            "project_id": project,
+            "file_parts": ["file"],
+            "primary_file": "file"
+          }))
+          PYEOF
+          echo "Modrinth metadata:"; cat /tmp/mr_meta.json; echo
+          HTTP=$(curl -sS -o /tmp/mr_resp.json -w "%{http_code}" \
+            -H "Authorization: ${MODRINTH_TOKEN}" \
+            -H "User-Agent: github.com/Gaspard4i/Steamon-Cobblemon-Utility-Plus-Resource-Pack" \
+            -X POST "https://api.modrinth.com/v2/version" \
+            -F "data=@/tmp/mr_meta.json;type=application/json" \
+            -F "file=@${ZIP}")
+          echo "HTTP: $HTTP"; cat /tmp/mr_resp.json; echo
+          [ "$HTTP" = "200" ] || { echo "::error::Modrinth upload failed"; exit 1; }
+          echo "Modrinth OK."
+
+      - name: Publish to CurseForge (if configured)
+        env:
+          CURSEFORGE_TOKEN: ${{ secrets.CURSEFORGE_TOKEN }}
+          CURSEFORGE_ID: ${{ vars.CURSEFORGE_ID }}
+          VERSION: ${{ steps.ver.outputs.version }}
+          ZIP: ${{ steps.build.outputs.zip }}
+        run: |
+          set -euo pipefail
+          if [ -z "${CURSEFORGE_TOKEN:-}" ] || [ -z "${CURSEFORGE_ID:-}" ]; then
+            echo "CurseForge not configured (CURSEFORGE_TOKEN or CURSEFORGE_ID missing) - skipping."
+            exit 0
+          fi
+          # Resolve the CF gameVersion id for 1.21.1 dynamically.
+          curl -sS -H "X-Api-Token: ${CURSEFORGE_TOKEN}" \
+            "https://minecraft.curseforge.com/api/game/versions" > /tmp/cf_versions.json
+          GV=$(python3 - <<'PYEOF'
+          import json
+          data = json.load(open('/tmp/cf_versions.json'))
+          # find the id whose name is exactly "1.21.1"
+          ids = [v['id'] for v in data if v.get('name') == '1.21.1']
+          print(ids[0] if ids else '')
+          PYEOF
+          )
+          if [ -z "$GV" ]; then echo "::error::could not resolve CF gameVersion for 1.21.1"; exit 1; fi
+          echo "CF gameVersion id for 1.21.1: $GV"
+          python3 - "$VERSION" "$GV" > /tmp/cf_meta.json <<'PYEOF'
+          import json, sys
+          version, gv = sys.argv[1], int(sys.argv[2])
+          print(json.dumps({
+            "changelog": "Release " + version + ".",
+            "changelogType": "text",
+            "displayName": "Steamon Utility+ RP " + version,
+            "releaseType": "release",
+            "gameVersions": [gv],
+          }))
+          PYEOF
+          echo "CF metadata:"; cat /tmp/cf_meta.json; echo
+          HTTP=$(curl -sS -o /tmp/cf_resp.json -w "%{http_code}" \
+            -X POST "https://minecraft.curseforge.com/api/projects/${CURSEFORGE_ID}/upload-file" \
+            -H "X-Api-Token: ${CURSEFORGE_TOKEN}" \
+            -H "User-Agent: github.com/Gaspard4i/Steamon-Cobblemon-Utility-Plus-Resource-Pack" \
+            -F "metadata=@/tmp/cf_meta.json;type=application/json" \
+            -F "file=@${ZIP}")
+          echo "HTTP: $HTTP"; cat /tmp/cf_resp.json; echo
+          [ "$HTTP" = "200" ] || [ "$HTTP" = "201" ] || { echo "::error::CF upload failed"; exit 1; }
+          echo "CurseForge OK."
