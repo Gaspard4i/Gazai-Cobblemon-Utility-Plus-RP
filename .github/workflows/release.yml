@@ -109,14 +109,17 @@ jobs:
           GV=$(python3 - <<'PYEOF'
           import json
           data = json.load(open('/tmp/cf_versions.json'))
-          # find the id whose name is exactly "1.21.1"
-          ids = [v['id'] for v in data if v.get('name') == '1.21.1']
+          # 1.21.1 has several entries under different gameVersionTypeIDs.
+          # The Minecraft "release" type (77784) is the one CF expects for uploads.
+          ids = [v['id'] for v in data if v.get('name') == '1.21.1' and v.get('gameVersionTypeID') == 77784]
+          if not ids:
+              ids = [v['id'] for v in data if v.get('name') == '1.21.1']
           print(ids[0] if ids else '')
           PYEOF
           )
           if [ -z "$GV" ]; then echo "::error::could not resolve CF gameVersion for 1.21.1"; exit 1; fi
           echo "CF gameVersion id for 1.21.1: $GV"
-          python3 - "$VERSION" "$GV" > /tmp/cf_meta.json <<'PYEOF'
+          META=$(python3 - "$VERSION" "$GV" <<'PYEOF'
           import json, sys
           version, gv = sys.argv[1], int(sys.argv[2])
           print(json.dumps({
@@ -127,12 +130,13 @@ jobs:
             "gameVersions": [gv],
           }))
           PYEOF
-          echo "CF metadata:"; cat /tmp/cf_meta.json; echo
+          )
+          echo "CF metadata: $META"
           HTTP=$(curl -sS -o /tmp/cf_resp.json -w "%{http_code}" \
             -X POST "https://minecraft.curseforge.com/api/projects/${CURSEFORGE_ID}/upload-file" \
             -H "X-Api-Token: ${CURSEFORGE_TOKEN}" \
             -H "User-Agent: github.com/Gaspard4i/Steamon-Cobblemon-Utility-Plus-Resource-Pack" \
-            -F "metadata=@/tmp/cf_meta.json;type=application/json" \
+            -F "metadata=${META}" \
             -F "file=@${ZIP}")
           echo "HTTP: $HTTP"; cat /tmp/cf_resp.json; echo
           [ "$HTTP" = "200" ] || [ "$HTTP" = "201" ] || { echo "::error::CF upload failed"; exit 1; }
