@@ -1,7 +1,8 @@
 # Gazai's Cobblemon Utility+ Resource Pack
 
-Resource pack that retextures and renames the items from the **Cobblemon Utility+**
-mod (modid `cobblemon_utility`) to fit the [Steamon modpack](https://modrinth.com/modpack/steamon) — MC 1.21.1.
+Resource pack that retextures and renames the items from the
+**[Cobblemon Utility+](https://modrinth.com/mod/cobblemon-utility+)** mod
+(modid `cobblemon_utility`) — MC 1.21.1. Requires the mod.
 
 ## What it changes
 
